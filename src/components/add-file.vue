@@ -28,24 +28,11 @@
         </svg>
       </span>
     </div>
-    <button class="btn-close">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-      >
-        <path fill="none" d="M0 0h24v24H0V0z"></path>
-        <path
-          d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"
-          fill="var(--c-text-secondary)"
-        ></path>
-      </svg>
-    </button>
+
   </div>
   <div class="modal-body">
-    <p class="modal-title">Upload a file</p>
-    <p class="modal-description">Attach the file below</p>
+    <p class="modal-title">Upload a zip-file</p>
+    <p class="modal-description">Attach the zip-file below</p>
     <button class="upload-area">
       <span class="upload-area-icon">
         <svg
@@ -66,9 +53,9 @@
           </g>
         </svg>
       </span>
-      <span class="upload-area-title">Drag file(s) here to upload.</span>
+      <span class="upload-area-title">Drag zip-file(s) here to upload.</span>
       <span class="upload-area-description">
-        Alternatively, you can select a file by <br /><strong
+        Alternatively, you can select a zip-file by <br /><strong
           >clicking here</strong
         >
       </span>
@@ -113,18 +100,7 @@
   fill: #1cc972;
 }
 
-.btn-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 0.25rem;
-  border: none;
-  background-color: transparent;
-  cursor: pointer;
-  transition: 0.3s ease;
-}
+
 
 .btn-close:hover,
 .btn-close:focus {
@@ -216,9 +192,8 @@
 
 .btn-primary {
   color: #fff;
-  background-color: #1cc972;
-  border-color: #1cc972;
+  background-color: #000000;
+  border-color: #000000;
   cursor: pointer;
 }
-
 </style>
