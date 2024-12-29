@@ -9,33 +9,34 @@ export function processFolder(inputFolder, outputFolder, framework) {
         entries.forEach((entry) => {
             const fullPath = path.join(folderPath, entry.name);
             if (entry.isDirectory()) {
-                files.push(...readFolderRecursively(fullPath)); 
+                files.push(...readFolderRecursively(fullPath));
             } else {
-                files.push(fullPath); 
+                files.push(fullPath);
             }
         });
 
         return files;
     }
 
-    function transformFile(content, framework) {
-        if (framework === 'vue') {
-            return content.replace(/<a href="(.*?)">/g, '<router-link to="$1">')
-                          .replace(/<\/a>/g, '</router-link>');
-        } else if (framework === 'react') {
-            return content.replace(/class="/g, 'className="');
+    //function to transform the file content
+    function transformFile(filePath, framework) {
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        let transformedContent = fileContent;
+
+        if (path.extname(filePath) === '.html') {
+            transformedContent = fileContent.replace(/class="/g, 'className="'); 
         }
-        return content; 
+
+        return transformedContent;
     }
 
     const files = readFolderRecursively(inputFolder);
 
     files.forEach((file) => {
         const relativePath = path.relative(inputFolder, file);
-        const outputPath = path.join(outputFolder, relativePath);
+        const outputPath = path.join(outputFolder, relativePath.replace(/\.html$/, '.vue'));
 
-        const content = fs.readFileSync(file, 'utf8');
-        const transformedContent = transformFile(content, framework);
+        const transformedContent = transformFile(file, framework);
 
         fs.mkdirSync(path.dirname(outputPath), { recursive: true });
         fs.writeFileSync(outputPath, transformedContent, 'utf8');
