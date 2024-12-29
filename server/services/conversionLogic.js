@@ -1,33 +1,33 @@
-const fs = require('fs');
-const path = require('path');
+export function processFolder(inputFolder, outputFolder, framework) {
+    const fs = require('fs');
+    const path = require('path');
 
-function readFolderRecursively(folderPath) {
-    const entries = fs.readdirSync(folderPath, { withFileTypes: true });
-    const files = [];
+    function readFolderRecursively(folderPath) {
+        const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+        const files = [];
 
-    entries.forEach((entry) => {
-        const fullPath = path.join(folderPath, entry.name);
-        if (entry.isDirectory()) {
-            files.push(...readFolderRecursively(fullPath)); 
-        } else {
-            files.push(fullPath);
-        }
-    });
+        entries.forEach((entry) => {
+            const fullPath = path.join(folderPath, entry.name);
+            if (entry.isDirectory()) {
+                files.push(...readFolderRecursively(fullPath));
+            } else {
+                files.push(fullPath);
+            }
+        });
 
-    return files;
-}
-
-function transformFile(content, framework) {
-    if (framework === 'vue') {
-        return content.replace(/<a href="(.*?)">/g, '<router-link to="$1">')
-                      .replace(/<\/a>/g, '</router-link>');
-    } else if (framework === 'react') {
-        return content.replace(/class="/g, 'className="');
+        return files;
     }
-    return content; 
-}
 
-function processFolder(inputFolder, outputFolder, framework) {
+    function transformFile(content, framework) {
+        if (framework === 'vue') {
+            return content.replace(/<a href="(.*?)">/g, '<router-link to="$1">')
+                          .replace(/<\/a>/g, '</router-link>');
+        } else if (framework === 'react') {
+            return content.replace(/class="/g, 'className="');
+        }
+        return content;
+    }
+
     const files = readFolderRecursively(inputFolder);
 
     files.forEach((file) => {
@@ -43,7 +43,3 @@ function processFolder(inputFolder, outputFolder, framework) {
 
     console.log(`Alle Dateien wurden erfolgreich für ${framework} konvertiert!`);
 }
-
-module.exports = {
-    processFolder,
-};
