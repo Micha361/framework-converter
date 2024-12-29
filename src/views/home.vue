@@ -6,7 +6,7 @@
       <option value="react">React</option>
     </select>
 
-    <input type="file" @change="onFileSelect" multiple />
+    <input type="file" accept=".zip" @change="onFileSelect" multiple />
     <button @click="startConversion">Konvertieren</button>
 
     <p v-if="message">{{ message }}</p>
