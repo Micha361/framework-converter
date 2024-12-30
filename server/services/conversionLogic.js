@@ -2,11 +2,10 @@ import fs from 'fs';
 import path from 'path';
 
 export function processFolder(inputFolder, outputFolder, framework) {
-    copyFilesToOutput(inputFolder, outputFolder);
-
-    if (framework === 'vue') {
-        generateVueEnvironment(outputFolder);
-    }
+  if (framework === 'vue') {
+      generateVueFromFiles(inputFolder, outputFolder);
+      generateVueEnvironment(outputFolder);
+  }
 }
 
 function copyFilesToOutput(inputFolder, outputFolder) {
@@ -30,7 +29,57 @@ function copyFilesToOutput(inputFolder, outputFolder) {
     readFolderRecursively(inputFolder);
 }
 
-//function to generate the vue environment
+function generateVueFromFiles(inputFolder, outputFolder) {
+    const htmlFiles = [];
+    const cssFiles = [];
+    const jsFiles = [];
+
+    function readFolderRecursively(folderPath) {
+        const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+        entries.forEach((entry) => {
+            const fullPath = path.join(folderPath, entry.name);
+            const ext = path.extname(entry.name);
+            if (entry.isDirectory()) {
+                readFolderRecursively(fullPath);
+            } else {
+                if (ext === '.html') htmlFiles.push(fullPath);
+                else if (ext === '.css') cssFiles.push(fullPath);
+                else if (ext === '.js') jsFiles.push(fullPath);
+            }
+        });
+    }
+
+    readFolderRecursively(inputFolder);
+
+    const appVuePath = path.join(outputFolder, 'src/App.vue');
+    const templateContent = htmlFiles.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
+    const styleContent = cssFiles.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
+    const scriptContent = jsFiles.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
+
+    const appVueContent = `
+<template>
+${templateContent.trim()}
+</template>
+
+<style scoped>
+${styleContent.trim()}
+</style>
+
+<script setup>
+${scriptContent.trim()}
+</script>
+`;
+
+    const appVueDir = path.dirname(appVuePath);
+    if (!fs.existsSync(appVueDir)) {
+        fs.mkdirSync(appVueDir, { recursive: true });
+    }
+
+    fs.writeFileSync(appVuePath, appVueContent, 'utf8');
+
+    console.log(`App.vue erfolgreich erstellt: ${appVuePath}`);
+}
+
 function generateVueEnvironment(outputFolder) {
     const vueStructure = {
         'package.json': JSON.stringify({
@@ -62,56 +111,6 @@ import { createApp } from 'vue';
 import App from './App.vue';
 
 createApp(App).mount('#app');
-        `,
-        'src/App.vue': `
-<template>
-  <div id="app">
-    <h1>Welcome to Your Vue 3 App</h1>
-    <HelloWorld msg="Hello Vue 3!"/>
-  </div>
-</template>
-
-<script>
-import HelloWorld from './components/HelloWorld.vue';
-
-export default {
-  name: 'App',
-  components: {
-    HelloWorld
-  }
-};
-</script>
-
-<style>
-body {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  text-align: center;
-}
-</style>
-        `,
-        'src/components/HelloWorld.vue': `
-<template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-  </div>
-</template>
-
-<script>
-export default {
-  name: 'HelloWorld',
-  props: {
-    msg: String
-  }
-};
-</script>
-
-<style scoped>
-h1 {
-  color: #42b983;
-}
-</style>
         `,
     };
 
