@@ -13,6 +13,7 @@ export function processFolder(inputFolder, outputFolder, framework) {
   if (framework === 'vue') {
     generateVueFromFiles(inputFolder, outputFolder);
     generateVueProjectStructure(outputFolder);
+    generateComponentsFolder(outputFolder);
     generateIndexHtml(outputFolder);
   }
 }
@@ -175,6 +176,14 @@ Dies ist ein automatisch generiertes Vue-Projekt.
   }
 
   console.log(`Vue-Projektstruktur erfolgreich im Ordner "${outputFolder}" erstellt.`);
+}
+
+function generateComponentsFolder(outputFolder) {
+  const componentsFolder = path.join(outputFolder, 'src/components');
+  if (!fs.existsSync(componentsFolder)) {
+    fs.mkdirSync(componentsFolder, { recursive: true });
+    console.log(`Leerer components ordner erstellt: ${componentsFolder}`);
+  }
 }
 
 function generateIndexHtml(outputFolder) {
