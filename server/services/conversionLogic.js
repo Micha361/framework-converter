@@ -172,9 +172,9 @@ dist
 .env
     `,
     'README.md': `
-# Mein Vue Projekt
+# My converted Vue project
 
-Dies ist ein automatisch generiertes Vue-Projekt.
+Please install the router-vue package in the terminal with the command (npm install vue-router).
     `,
   };
 
