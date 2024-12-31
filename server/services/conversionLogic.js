@@ -130,9 +130,9 @@ dist
 .env
     `,
     'README.md': `
-# Mein Vue Projekt
+#My Vue Projekt
 
-Dies ist ein automatisch generiertes Vue-Projekt.
+This is youre converted Vue project.
     `,
   };
 
