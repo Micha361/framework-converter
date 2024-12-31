@@ -1,5 +1,13 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const SERVER_DIR = path.join(__dirname, '../');
+const UPLOADS_DIR = path.join(SERVER_DIR, 'uploads');
+const OUTPUT_DIR = path.join(SERVER_DIR, 'output');
 
 export function processFolder(inputFolder, outputFolder, framework) {
   if (framework === 'vue') {
@@ -7,6 +15,39 @@ export function processFolder(inputFolder, outputFolder, framework) {
     generateVueProjectStructure(outputFolder);
     generateIndexHtml(outputFolder);
   }
+}
+
+function sanitizeHtmlLinksAndScripts(htmlContent) {
+  return htmlContent
+    .replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '') 
+    .replace(/<script[^>]*src=["'][^"']+["'][^>]*><\/script>/gi, ''); 
+}
+
+function extractFunctionsFromJs(jsContent) {
+  const functionRegex = /function\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*{([^}]*)}/g;
+  const functions = [];
+  let match;
+
+  while ((match = functionRegex.exec(jsContent)) !== null) {
+    const [_, name, params, body] = match;
+    functions.push({ name, params, body });
+  }
+
+  return functions;
+}
+
+function transformHtmlEventListeners(htmlContent, functions) {
+  const eventAttributeRegex = /onclick="([^"]+)"/gi;
+
+  const transformedHtml = htmlContent.replace(eventAttributeRegex, (match, jsFunctionCall) => {
+    const functionName = jsFunctionCall.split('(')[0];
+    if (functions.some((fn) => fn.name === functionName)) {
+      return `@click="${functionName}"`;
+    }
+    return match;
+  });
+
+  return transformedHtml;
 }
 
 function generateVueFromFiles(inputFolder, outputFolder) {
@@ -32,27 +73,39 @@ function generateVueFromFiles(inputFolder, outputFolder) {
   readFolderRecursively(inputFolder);
 
   const appVuePath = path.join(outputFolder, 'src/App.vue');
-  const templateContent = htmlFiles.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
+  const styleCssPath = path.join(outputFolder, 'src/style.css');
+
+  const rawHtmlContent = htmlFiles
+    .map((file) => fs.readFileSync(file, 'utf8'))
+    .join('\n');
+  const rawJsContent = jsFiles
+    .map((file) => fs.readFileSync(file, 'utf8'))
+    .join('\n');
+
+  const sanitizedHtml = sanitizeHtmlLinksAndScripts(rawHtmlContent);
+
+  const extractedFunctions = extractFunctionsFromJs(rawJsContent);
+  const transformedHtml = transformHtmlEventListeners(sanitizedHtml, extractedFunctions);
+
+  const vueFunctions = extractedFunctions
+    .map(({ name, params, body }) => `function ${name}(${params.trim()}) {${body.trim()}}`)
+    .join('\n');
+
   const styleContent = cssFiles.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
-  const scriptContent = jsFiles.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
 
   const appVueContent = `
 <template>
 <div>
   <h1>Your Project</h1>
-  <HelloWorld msg="Welcome to Vue!" />
-  ${templateContent.trim()}
+  ${transformedHtml.trim()}
 </div>
 </template>
 
-<style scoped>
-${styleContent.trim()}
-</style>
-
 <script setup>
-import HelloWorld from './components/HelloWorld.vue';
-${scriptContent.trim()}
+${vueFunctions}
 </script>
+
+<style src="./style.css"></style>
 `;
 
   const appVueDir = path.dirname(appVuePath);
@@ -61,8 +114,9 @@ ${scriptContent.trim()}
   }
 
   fs.writeFileSync(appVuePath, appVueContent, 'utf8');
+  fs.writeFileSync(styleCssPath, styleContent, 'utf8');
 
-  console.log(`App.vue erfolgreich erstellt: ${appVuePath}`);
+  console.log(`App.vue und style.css erfolgreich erstellt: ${appVuePath}, ${styleCssPath}`);
 }
 
 function generateVueProjectStructure(outputFolder) {
@@ -97,42 +151,15 @@ import App from './App.vue';
 
 createApp(App).mount('#app');
     `,
-    'src/components/HelloWorld.vue': `
-<template>
-  <div>
-    <h2>{{ msg }}</h2>
-  </div>
-</template>
-
-<script setup>
-defineProps({
-  msg: String
-});
-</script>
-
-<style scoped>
-h2 {
-  color: #42b983;
-}
-</style>
-    `,
-    'public/vite.svg': `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 841.9 595.3">
-  <g fill="#42b983">
-    <path d="M421.9 8L123.3 595.3h599.3z" />
-    <circle cx="421.9" cy="138.4" r="87.4" fill="#35495e" />
-  </g>
-</svg>
-    `,
     '.gitignore': `
 node_modules
 dist
 .env
     `,
     'README.md': `
-#My Vue Projekt
+# Mein Vue Projekt
 
-This is youre converted Vue project.
+Dies ist ein automatisch generiertes Vue-Projekt.
     `,
   };
 
