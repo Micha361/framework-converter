@@ -90,7 +90,7 @@ ${jsContent.trim()}
 </script>
 
 <style scoped>
-${cssContent.trim()}
+${cssContent.trim()}  
 </style>
     `;
 
