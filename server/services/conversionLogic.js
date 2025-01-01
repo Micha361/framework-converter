@@ -13,12 +13,26 @@ export function processFolder(inputFolder, outputFolder, framework) {
   if (framework === 'vue') {
     const htmlFiles = generateVuePages(inputFolder, outputFolder);
     generateVueProjectStructure(outputFolder);
-    generateComponentsFolder(outputFolder);
     generateRouterConfig(outputFolder, htmlFiles);
     generateAppVue(outputFolder);
     generateIndexHtml(outputFolder);
     execSync('npm install', { cwd: outputFolder, stdio: 'inherit' });
   }
+}
+
+function extractAndRemove(content, tag) {
+  const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i');
+  const match = content.match(regex);
+  if (match) {
+    content = content.replace(match[0], '');
+    const sanitizedContent = match[0]
+      .replace(/<a\s+href="([^"]+)">([^<]+)<\/a>/gi, (_, href, text) => {
+        const vueHref = href === 'index.html' || href === './' ? '/' : href.replace('.html', '');
+        return `<router-link to="${vueHref}">${text}</router-link>`;
+      });
+    return { content, extracted: sanitizedContent.trim() };
+  }
+  return { content, extracted: null };
 }
 
 function sanitizeHtmlContent(htmlContent) {
@@ -31,7 +45,7 @@ function sanitizeHtmlContent(htmlContent) {
     .replace(/<\/body>/gi, '')
     .replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '')
     .replace(/<script[^>]*src=["'][^"']+["'][^>]*><\/script>/gi, '')
-    .replace(/onclick=["']([^"']+)["']/gi, (_, func) => `@click="${func}"`) 
+    .replace(/onclick=["']([^"']+)["']/gi, (_, func) => `@click="${func}"`)
     .replace(/<a\s+href="([^"]+)">([^<]+)<\/a>/gi, (_, href, text) => {
       const vueHref = href === 'index.html' || href === './' ? '/' : href.replace('.html', '');
       return `<router-link to="${vueHref}">${text}</router-link>`;
@@ -39,11 +53,26 @@ function sanitizeHtmlContent(htmlContent) {
     .trim();
 }
 
+function generateComponents(outputFolder, components) {
+  const componentsDir = path.join(outputFolder, 'src/components');
+  if (!fs.existsSync(componentsDir)) fs.mkdirSync(componentsDir, { recursive: true });
+
+  components.forEach(({ name, content }) => {
+    const componentFile = path.join(componentsDir, `${name}.vue`);
+    fs.writeFileSync(
+      componentFile,
+      `<template>${content}</template>\n<style scoped></style>`,
+      'utf8'
+    );
+    console.log(`Komponente erstellt: ${componentFile}`);
+  });
+}
 
 function generateVuePages(inputFolder, outputFolder) {
   const htmlFiles = [];
   const cssFiles = [];
   const jsFiles = [];
+  const components = [];
 
   const readFolderRecursively = (folderPath) => {
     const entries = fs.readdirSync(folderPath, { withFileTypes: true });
@@ -63,27 +92,56 @@ function generateVuePages(inputFolder, outputFolder) {
   if (!fs.existsSync(pagesDir)) fs.mkdirSync(pagesDir, { recursive: true });
 
   htmlFiles.forEach((file) => {
-    const baseName = path.basename(file, '.html');
+    const baseName = path.basename(file, '.html'); 
     const cssFile = cssFiles.find((css) => path.basename(css, '.css') === baseName);
     const jsFile = jsFiles.find((js) => path.basename(js, '.js') === baseName);
 
-    const sanitizedHtml = sanitizeHtmlContent(fs.readFileSync(file, 'utf8'));
+    let htmlContent = fs.readFileSync(file, 'utf8');
+
+    const { content: withoutNavbar, extracted: navbar } = extractAndRemove(htmlContent, 'nav');
+    const { content: withoutFooter, extracted: footer } = extractAndRemove(withoutNavbar, 'footer');
+
+    if (navbar && !components.find((c) => c.name === 'Navbar')) {
+      components.push({ name: 'Navbar', content: navbar });
+    }
+
+    if (footer && !components.find((c) => c.name === 'Footer')) {
+      components.push({ name: 'Footer', content: footer });
+    }
+
+    htmlContent = withoutFooter;
+
+    const sanitizedHtml = sanitizeHtmlContent(htmlContent);
     const cssContent = cssFile ? fs.readFileSync(cssFile, 'utf8').trim() : '';
     const jsContent = jsFile ? fs.readFileSync(jsFile, 'utf8').trim() : '';
 
     const vueContent = `
 <template>
-  ${sanitizedHtml}
+  ${navbar ? '<Navbar />' : ''}
+  <div class="content">
+    ${sanitizedHtml}
+  </div>
+  ${footer ? '<Footer />' : ''}
 </template>
-${jsContent ? `<script setup>\n${jsContent}\n</script>` : ''}
+
+<script setup>
+${navbar ? "import Navbar from '../components/Navbar.vue';" : ''}
+${footer ? "import Footer from '../components/Footer.vue';" : ''}
+${jsContent}
+</script>
+
 ${cssContent ? `<style scoped>\n${cssContent}\n</style>` : ''}
     `.trim();
 
-    fs.writeFileSync(path.join(pagesDir, `${baseName}.vue`), vueContent, 'utf8');
+    const vueFilePath = path.join(pagesDir, `${baseName}.vue`);
+    fs.writeFileSync(vueFilePath, vueContent, 'utf8');
+    console.log(`Seite erstellt: ${vueFilePath}`);
   });
 
+  generateComponents(outputFolder, components);
   return htmlFiles.map((file) => path.basename(file, '.html'));
 }
+
 
 function generateRouterConfig(outputFolder, htmlFiles) {
   const routes = htmlFiles.map((name) => {
@@ -116,7 +174,7 @@ export default router;
 function generateVueProjectStructure(outputFolder) {
   const projectStructure = {
     'package.json': JSON.stringify({
-      name: 'mein-vue-projekt',
+      name: 'vue-converter-project',
       version: '0.0.1',
       scripts: {
         dev: 'vite',
@@ -152,11 +210,6 @@ node_modules
 dist
 .env
     `.trim(),
-    'README.md': `
-# My converted Vue project
-
-Please install the router-vue package in the terminal with the command (npm install vue-router).
-    `.trim(),
   };
 
   Object.entries(projectStructure).forEach(([filePath, content]) => {
@@ -166,17 +219,9 @@ Please install the router-vue package in the terminal with the command (npm inst
   });
 }
 
-function generateComponentsFolder(outputFolder) {
-  const componentsFolder = path.join(outputFolder, 'src/components');
-  if (!fs.existsSync(componentsFolder)) fs.mkdirSync(componentsFolder, { recursive: true });
-}
-
 function generateAppVue(outputFolder) {
   const appVueContent = `
 <template>
-  <nav>
-    <h1>My Vue App</h1>
-  </nav>
   <router-view />
 </template>
 
@@ -194,7 +239,7 @@ function generateIndexHtml(outputFolder) {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Vue Project</title>
+    <title>Vue Project</title>
   </head>
   <body>
     <div id="app"></div>
