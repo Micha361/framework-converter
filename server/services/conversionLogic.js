@@ -42,6 +42,7 @@ function transformLinksToRouterLinks(htmlContent) {
 
 function generateVuePages(inputFolder, outputFolder) {
   const htmlFiles = [];
+  const cssFiles = [];
   const jsFiles = [];
 
   function readFolderRecursively(folderPath) {
@@ -54,6 +55,8 @@ function generateVuePages(inputFolder, outputFolder) {
         readFolderRecursively(fullPath);
       } else if (ext === '.html') {
         htmlFiles.push(fullPath);
+      } else if (ext === '.css') {
+        cssFiles.push(fullPath);
       } else if (ext === '.js') {
         jsFiles.push(fullPath);
       }
@@ -63,44 +66,42 @@ function generateVuePages(inputFolder, outputFolder) {
   readFolderRecursively(inputFolder);
 
   const pagesDir = path.join(outputFolder, 'src/pages');
-  const scriptsDir = path.join(outputFolder, 'src/scripts');
-
   if (!fs.existsSync(pagesDir)) {
     fs.mkdirSync(pagesDir, { recursive: true });
   }
-  if (!fs.existsSync(scriptsDir)) {
-    fs.mkdirSync(scriptsDir, { recursive: true });
-  }
-
-  jsFiles.forEach((file) => {
-    const fileName = path.basename(file);
-    const outputFilePath = path.join(scriptsDir, fileName);
-    fs.copyFileSync(file, outputFilePath);
-    console.log(`JavaScript-Datei kopiert: ${outputFilePath}`);
-  });
 
   htmlFiles.forEach((file) => {
-    const content = fs.readFileSync(file, 'utf8');
-    const sanitizedHtml = sanitizeHtmlLinksAndScripts(content);
+    const baseName = path.basename(file, '.html');
+    const cssFile = cssFiles.find((css) => path.basename(css, '.css') === baseName);
+    const jsFile = jsFiles.find((js) => path.basename(js, '.js') === baseName);
+
+    const htmlContent = fs.readFileSync(file, 'utf8');
+    const sanitizedHtml = sanitizeHtmlLinksAndScripts(htmlContent);
+    const cssContent = cssFile ? fs.readFileSync(cssFile, 'utf8') : '';
+    const jsContent = jsFile ? fs.readFileSync(jsFile, 'utf8') : '';
 
     const vueContent = `
 <template>
   ${sanitizedHtml.trim()}
 </template>
+
 <script setup>
+${jsContent.trim()}
 </script>
+
 <style scoped>
+${cssContent.trim()}
 </style>
     `;
 
-    const fileName = path.basename(file, '.html') + '.vue';
-    const filePath = path.join(pagesDir, fileName);
-    fs.writeFileSync(filePath, vueContent, 'utf8');
-    console.log(`Seite erstellt: ${filePath}`);
+    const vueFilePath = path.join(pagesDir, `${baseName}.vue`);
+    fs.writeFileSync(vueFilePath, vueContent, 'utf8');
+    console.log(`Seite erstellt: ${vueFilePath}`);
   });
 
   return htmlFiles.map((file) => path.basename(file, '.html'));
 }
+
 
 function generateRouterConfig(outputFolder, htmlFiles) {
   const routes = htmlFiles.map((name) => {
