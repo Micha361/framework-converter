@@ -8,7 +8,6 @@
 
     <input type="file" accept=".zip" @change="onFileSelect" multiple />
     <button @click="startConversion">Convert</button>
-    <button @click="downloadZip" v-if="conversionComplete">Download ZIP</button>
 
     <p v-if="message">{{ message }}</p>
   </div>
@@ -23,7 +22,6 @@ export default {
       selectedFramework: 'vue',
       selectedFiles: null,
       message: '',
-      conversionComplete: false,
     };
   },
   methods: {
@@ -32,29 +30,20 @@ export default {
     },
     async startConversion() {
       try {
-        const response = await convertProject(this.selectedFiles, this.selectedFramework);
-        this.message = response.message;
-        this.conversionComplete = true;
-      } catch (error) {
-        console.error(error);
-        this.message = 'An error occurred while converting!';
-      }
-    },
-    async downloadZip() {
-      try {
-        const response = await fetch('http://localhost:3000/download');
-        if (!response.ok) throw new Error('Download failed');
+        console.log('Selected file:', this.selectedFiles);
+        console.log('Selected framework:', this.selectedFramework);
 
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'converted_project.zip';
-        a.click();
-        window.URL.revokeObjectURL(url);
+        const response = await convertProject(this.selectedFiles, this.selectedFramework);
+        this.message = response.message || 'Conversion successful!';
       } catch (error) {
-        console.error('Error downloading ZIP:', error);
-        this.message = 'An error occurred while downloading the ZIP file!';
+        console.error('Error during conversion:', error);
+        if (error.response) {
+          this.message = `Server error: ${error.response.status} - ${error.response.data}`;
+        } else if (error.request) {
+          this.message = 'No response from server. Check your network connection.';
+        } else {
+          this.message = 'Error: ' + error.message;
+        }
       }
     },
   },
