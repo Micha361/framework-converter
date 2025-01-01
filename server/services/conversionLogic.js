@@ -7,7 +7,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const SERVER_DIR = path.join(__dirname, '../');
-const UPLOADS_DIR = path.join(SERVER_DIR, 'uploads');
 const OUTPUT_DIR = path.join(SERVER_DIR, 'output');
 
 export function processFolder(inputFolder, outputFolder, framework) {
@@ -18,90 +17,73 @@ export function processFolder(inputFolder, outputFolder, framework) {
     generateRouterConfig(outputFolder, htmlFiles);
     generateAppVue(outputFolder);
     generateIndexHtml(outputFolder);
-
-    console.log('Installiere npm-Abhängigkeiten...');
     execSync('npm install', { cwd: outputFolder, stdio: 'inherit' });
-    console.log('Installation abgeschlossen.');
   }
 }
 
-function sanitizeHtmlLinksAndScripts(htmlContent) {
-  const sanitized = htmlContent
-    .replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '') 
-    .replace(/<script[^>]*src=["'][^"']+["'][^>]*><\/script>/gi, ''); 
-
-  return transformLinksToRouterLinks(sanitized);
+function sanitizeHtmlContent(htmlContent) {
+  return htmlContent
+    .replace(/<!DOCTYPE html>/gi, '')
+    .replace(/<html[^>]*>/gi, '')
+    .replace(/<\/html>/gi, '')
+    .replace(/<head[^>]*>.*?<\/head>/gis, '')
+    .replace(/<body[^>]*>/gi, '')
+    .replace(/<\/body>/gi, '')
+    .replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '')
+    .replace(/<script[^>]*src=["'][^"']+["'][^>]*><\/script>/gi, '')
+    .replace(/onclick=["']([^"']+)["']/gi, (_, func) => `@click="${func}"`) 
+    .replace(/<a\s+href="([^"]+)">([^<]+)<\/a>/gi, (_, href, text) => {
+      const vueHref = href === 'index.html' || href === './' ? '/' : href.replace('.html', '');
+      return `<router-link to="${vueHref}">${text}</router-link>`;
+    })
+    .trim();
 }
 
-function transformLinksToRouterLinks(htmlContent) {
-  return htmlContent.replace(/<a\s+href="([^"]+)">([^<]+)<\/a>/gi, (match, href, text) => {
-    const vueHref = href === 'index.html' || href === './' ? '/' : href.replace('.html', '');
-    return `<router-link to="${vueHref}">${text}</router-link>`;
-  });
-}
 
 function generateVuePages(inputFolder, outputFolder) {
   const htmlFiles = [];
   const cssFiles = [];
   const jsFiles = [];
 
-  function readFolderRecursively(folderPath) {
+  const readFolderRecursively = (folderPath) => {
     const entries = fs.readdirSync(folderPath, { withFileTypes: true });
     entries.forEach((entry) => {
       const fullPath = path.join(folderPath, entry.name);
       const ext = path.extname(entry.name);
-
-      if (entry.isDirectory()) {
-        readFolderRecursively(fullPath);
-      } else if (ext === '.html') {
-        htmlFiles.push(fullPath);
-      } else if (ext === '.css') {
-        cssFiles.push(fullPath);
-      } else if (ext === '.js') {
-        jsFiles.push(fullPath);
-      }
+      if (entry.isDirectory()) readFolderRecursively(fullPath);
+      else if (ext === '.html') htmlFiles.push(fullPath);
+      else if (ext === '.css') cssFiles.push(fullPath);
+      else if (ext === '.js') jsFiles.push(fullPath);
     });
-  }
+  };
 
   readFolderRecursively(inputFolder);
 
   const pagesDir = path.join(outputFolder, 'src/pages');
-  if (!fs.existsSync(pagesDir)) {
-    fs.mkdirSync(pagesDir, { recursive: true });
-  }
+  if (!fs.existsSync(pagesDir)) fs.mkdirSync(pagesDir, { recursive: true });
 
   htmlFiles.forEach((file) => {
     const baseName = path.basename(file, '.html');
     const cssFile = cssFiles.find((css) => path.basename(css, '.css') === baseName);
     const jsFile = jsFiles.find((js) => path.basename(js, '.js') === baseName);
 
-    const htmlContent = fs.readFileSync(file, 'utf8');
-    const sanitizedHtml = sanitizeHtmlLinksAndScripts(htmlContent);
-    const cssContent = cssFile ? fs.readFileSync(cssFile, 'utf8') : '';
-    const jsContent = jsFile ? fs.readFileSync(jsFile, 'utf8') : '';
+    const sanitizedHtml = sanitizeHtmlContent(fs.readFileSync(file, 'utf8'));
+    const cssContent = cssFile ? fs.readFileSync(cssFile, 'utf8').trim() : '';
+    const jsContent = jsFile ? fs.readFileSync(jsFile, 'utf8').trim() : '';
 
     const vueContent = `
 <template>
-  ${sanitizedHtml.trim()}
+  ${sanitizedHtml}
 </template>
+${jsContent ? `<script setup>\n${jsContent}\n</script>` : ''}
+${cssContent ? `<style scoped>\n${cssContent}\n</style>` : ''}
+    `.trim();
 
-<script setup>
-${jsContent.trim()}
-</script>
-
-<style scoped>
-${cssContent.trim()}  
-</style>
-    `;
-
-    const vueFilePath = path.join(pagesDir, `${baseName}.vue`);
-    fs.writeFileSync(vueFilePath, vueContent, 'utf8');
-    console.log(`Seite erstellt: ${vueFilePath}`);
+    fs.writeFileSync(path.join(pagesDir, `${baseName}.vue`), vueContent, 'utf8');
   });
 
   return htmlFiles.map((file) => path.basename(file, '.html'));
 }
-
 
 function generateRouterConfig(outputFolder, htmlFiles) {
   const routes = htmlFiles.map((name) => {
@@ -126,11 +108,9 @@ const router = createRouter({
 });
 
 export default router;
-  `;
+  `.trim();
 
-  const routerPath = path.join(outputFolder, 'src/router.js');
-  fs.writeFileSync(routerPath, routerContent, 'utf8');
-  console.log(`Router erstellt: ${routerPath}`);
+  fs.writeFileSync(path.join(outputFolder, 'src/router.js'), routerContent, 'utf8');
 }
 
 function generateVueProjectStructure(outputFolder) {
@@ -159,64 +139,52 @@ import vue from '@vitejs/plugin-vue';
 export default defineConfig({
   plugins: [vue()],
 });
-    `,
+    `.trim(),
     'src/main.js': `
 import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
 
 createApp(App).use(router).mount('#app');
-    `,
+    `.trim(),
     '.gitignore': `
 node_modules
 dist
 .env
-    `,
+    `.trim(),
     'README.md': `
 # My converted Vue project
 
 Please install the router-vue package in the terminal with the command (npm install vue-router).
-    `,
+    `.trim(),
   };
 
-  for (const [filePath, content] of Object.entries(projectStructure)) {
+  Object.entries(projectStructure).forEach(([filePath, content]) => {
     const fullPath = path.join(outputFolder, filePath);
-    const dir = path.dirname(fullPath);
-
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
+    if (!fs.existsSync(path.dirname(fullPath))) fs.mkdirSync(path.dirname(fullPath), { recursive: true });
     fs.writeFileSync(fullPath, content, 'utf8');
-  }
-
-  console.log(`Vue-Projektstruktur erfolgreich im Ordner "${outputFolder}" erstellt.`);
+  });
 }
 
 function generateComponentsFolder(outputFolder) {
   const componentsFolder = path.join(outputFolder, 'src/components');
-  if (!fs.existsSync(componentsFolder)) {
-    fs.mkdirSync(componentsFolder, { recursive: true });
-    console.log(`Leerer Komponentenordner erstellt: ${componentsFolder}`);
-  }
+  if (!fs.existsSync(componentsFolder)) fs.mkdirSync(componentsFolder, { recursive: true });
 }
 
 function generateAppVue(outputFolder) {
   const appVueContent = `
 <template>
   <nav>
-    <h1>please remove this text</h1>
+    <h1>My Vue App</h1>
   </nav>
   <router-view />
 </template>
 
 <script setup>
 </script>
-  `;
+  `.trim();
 
-  const appVuePath = path.join(outputFolder, 'src/App.vue');
-  fs.writeFileSync(appVuePath, appVueContent, 'utf8');
-  console.log(`App.vue erstellt: ${appVuePath}`);
+  fs.writeFileSync(path.join(outputFolder, 'src/App.vue'), appVueContent, 'utf8');
 }
 
 function generateIndexHtml(outputFolder) {
@@ -226,18 +194,14 @@ function generateIndexHtml(outputFolder) {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mein Vue Projekt</title>
+    <title>My Vue Project</title>
   </head>
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
-  `;
+  `.trim();
 
-  const indexHtmlPath = path.join(outputFolder, 'index.html');
-
-  fs.writeFileSync(indexHtmlPath, indexHtmlContent, 'utf8');
-
-  console.log(`index.html erfolgreich erstellt: ${indexHtmlPath}`);
+  fs.writeFileSync(path.join(outputFolder, 'index.html'), indexHtmlContent, 'utf8');
 }
