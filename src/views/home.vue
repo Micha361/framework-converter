@@ -40,7 +40,6 @@ export default {
     <h2>Convert your project</h2>
     <select v-model="selectedFramework">
       <option value="vue">Vue.js</option>
-      <option value="react">React</option>
     </select>
 
     <input type="file" accept=".zip" @change="onFileSelect" multiple />

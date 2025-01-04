@@ -33,7 +33,7 @@
   
       <h2>Supported Frameworks</h2>
       <p>
-        Currently, you can convert your project to either <strong>Vue.js</strong> or <strong>React</strong>. More frameworks will be supported in future updates.
+        Currently, you can convert your project to <strong>Vue.js</strong>. More frameworks will be supported in future updates.
       </p>
     </div>
   </template>
