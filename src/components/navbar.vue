@@ -28,7 +28,7 @@
   }
   
   a {
-    color: rgb(0, 0, 0);
+    color: rgb(255, 255, 255);
     text-decoration: none;
     font-size: 18px;
     font-weight: bold;

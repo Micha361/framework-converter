@@ -50,5 +50,8 @@ export default {
   </div>
 </template>
 
-<style scoped>
+<style>
+h2 {
+  margin-top: 100px;
+}
 </style>
