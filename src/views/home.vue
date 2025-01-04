@@ -1,18 +1,3 @@
-<template>
-  <div>
-    <h2>Convert your project</h2>
-    <select v-model="selectedFramework">
-      <option value="vue">Vue.js</option>
-      <option value="react">React</option>
-    </select>
-
-    <input type="file" accept=".zip" @change="onFileSelect" multiple />
-    <button @click="startConversion">Convert</button>
-
-    <p v-if="message">{{ message }}</p>
-  </div>
-</template>
-
 <script>
 import { convertProject } from '../services/ConversionService';
 
@@ -49,3 +34,21 @@ export default {
   },
 };
 </script>
+
+<template>
+  <div>
+    <h2>Convert your project</h2>
+    <select v-model="selectedFramework">
+      <option value="vue">Vue.js</option>
+      <option value="react">React</option>
+    </select>
+
+    <input type="file" accept=".zip" @change="onFileSelect" multiple />
+    <button @click="startConversion">Convert</button>
+
+    <p v-if="message">{{ message }}</p>
+  </div>
+</template>
+
+<style scoped>
+</style>
