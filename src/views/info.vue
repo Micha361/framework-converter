@@ -7,6 +7,7 @@
   <template>
     <div class="info-container">
       <h1>Welcome to the Framework Converter</h1>
+      <div class="text">
       <p>
         The <strong>framework-converter</strong> project is a web application designed to simplify the process of converting your existing web applications into different frameworks.
       </p>
@@ -16,8 +17,10 @@
       <p>
         Whether you're migrating to a new framework or just exploring different options, <strong>framework-converter</strong> provides a seamless and efficient solution.
       </p>
-      
+    </div>
+
       <h2>How it works</h2>
+      <div class="text">
       <p>
         For the converter to work, you must organize your project in the following way before uploading it:
       </p>
@@ -35,6 +38,7 @@
       <p>
         Currently, you can convert your project to <strong>Vue.js</strong>. More frameworks will be supported in future updates.
       </p>
+    </div>
     </div>
   </template>
   
@@ -69,5 +73,11 @@
     font-size: 1.1em;
     border-radius: 4px;
   }
+
+  .text {
+    background-color: #343434;
+    border-radius: 13px;
+    padding: 10px;
+    }
   </style>
   

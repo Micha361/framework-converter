@@ -58,7 +58,6 @@ export default {
 
 .title-container {
   justify-content: center;
-  background-color: #343434;
   margin: auto 0;
   margin-left: 170px;
   margin-right: 170px;
