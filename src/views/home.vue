@@ -37,7 +37,9 @@ export default {
 
 <template>
   <div>
-    <h2>Convert your project</h2>
+    <div class="title-container">
+    <h2 class="title">Convert your project</h2>
+  </div>
     <select v-model="selectedFramework">
       <option value="vue">Vue.js</option>
     </select>
@@ -50,8 +52,17 @@ export default {
 </template>
 
 <style>
-h2 {
+.title {
   margin-top: 100px;
+}
+
+.title-container {
+  justify-content: center;
+  background-color: #343434;
+  margin: auto 0;
+  margin-left: 170px;
+  margin-right: 170px;
+  border-radius: 17px;
 }
 
 .convertbtn {
