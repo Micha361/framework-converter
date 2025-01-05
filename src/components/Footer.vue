@@ -10,6 +10,7 @@
     p{
         text-emphasis: center;
         font-size: 17px;
+        margin-top: 300px;
     }
   </style>
   
