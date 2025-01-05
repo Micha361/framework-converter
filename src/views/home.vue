@@ -42,8 +42,8 @@ export default {
       <option value="vue">Vue.js</option>
     </select>
 
-    <input type="file" accept=".zip" @change="onFileSelect" multiple />
-    <button @click="startConversion">Convert</button>
+    <input class="fileselect" type="file" accept=".zip" @change="onFileSelect" multiple />
+    <button class="convertbtn" @click="startConversion">Convert</button>
 
     <p v-if="message">{{ message }}</p>
   </div>
@@ -53,4 +53,13 @@ export default {
 h2 {
   margin-top: 100px;
 }
+
+.convertbtn {
+  margin-left: 20px;
+}
+
+.fileselect {
+  margin-left: 10px;
+}
+
 </style>
