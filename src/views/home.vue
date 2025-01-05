@@ -23,11 +23,11 @@ export default {
       } catch (error) {
         console.error('Error during conversion:', error);
         if (error.response) {
-          this.message = `Server error: ${error.response.status} - ${error.response.data}`;
+          //this.message = `Server error: ${error.response.status} - ${error.response.data}`;
         } else if (error.request) {
-          this.message = 'No response from server. Check your network connection.';
+          //this.message = 'No response from server. Check your network connection.';
         } else {
-          this.message = 'Error: ' + error.message;
+          //this.message = 'Error: ' + error.message;
         }
       }
     },
