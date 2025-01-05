@@ -48,14 +48,14 @@
   }
   
   h1 {
-    color: #333;
+    color: #ffffff;
     font-size: 2em;
   }
   
   h2 {
     margin-top: 20px;
     font-size: 1.5em;
-    color: #555;
+    color: #ffffff;
   }
   
   ul {
