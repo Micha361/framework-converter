@@ -6,7 +6,7 @@
 
   <template>
     <div class="info-container">
-      <h1>Welcome to the Framework Converter</h1>
+      <h1>Framework Converter</h1>
       <div class="text">
       <p>
         The <strong>framework-converter</strong> project is a web application designed to simplify the process of converting your existing web applications into different frameworks.

@@ -45,7 +45,8 @@ export default {
     </select>
 
     <input class="fileselect" type="file" accept=".zip" @change="onFileSelect" multiple />
-    <button class="convertbtn" @click="startConversion">Convert</button>
+    <button class="convertbtn" @click="startConversion">Convert</button> <br><br>
+    <button class="downloadbtn" @click="downloadConversion">download file</button>
 
     <p v-if="message">{{ message }}</p>
   </div>
