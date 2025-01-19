@@ -1,5 +1,6 @@
 <script>
 import { convertProject } from '../services/ConversionService';
+import axios from 'axios'; 
 
 export default {
   data() {
@@ -21,7 +22,7 @@ export default {
         const response = await convertProject(this.selectedFiles, this.selectedFramework);
         this.message = response.message || 'Conversion successful!';
       } catch (error) {
-        console.error('Error during conversion:', error);
+        //console.error('Error during conversion:', error);
         if (error.response) {
           //this.message = `Server error: ${error.response.status} - ${error.response.data}`;
         } else if (error.request) {
@@ -31,6 +32,23 @@ export default {
         }
       }
     },
+    async downloadConversion() {
+      try {
+        const response = await axios.get('/api/download', { responseType: 'blob' });
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'converted_project.zip'); // Name der heruntergeladenen Datei
+        document.body.appendChild(link);
+        link.click();
+
+        link.remove();
+      } catch (error) {
+        console.error('Error downloading file:', error);
+      }
+    },
   },
 };
 </script>
@@ -38,21 +56,21 @@ export default {
 <template>
   <div>
     <div class="title-container">
-    <h2 class="title">Convert your project</h2>
-  </div>
+      <h2 class="title">Convert your project</h2>
+    </div>
     <select v-model="selectedFramework">
       <option value="vue">Vue.js</option>
     </select>
 
     <input class="fileselect" type="file" accept=".zip" @change="onFileSelect" multiple />
     <button class="convertbtn" @click="startConversion">Convert</button> <br><br>
-    <button class="downloadbtn" @click="downloadConversion">download file</button>
+    <button class="downloadbtn" @click="downloadConversion">Download file</button>
 
     <p v-if="message">{{ message }}</p>
   </div>
 </template>
 
-<style>
+<style scoped>
 .title {
   margin-top: 100px;
 }
@@ -87,4 +105,21 @@ export default {
   margin-left: 10px;
 }
 
+.downloadbtn {
+  margin-left: 20px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+.downloadbtn:hover {
+  border-color: #ffffff;
+  background-color: #333;
+}
 </style>

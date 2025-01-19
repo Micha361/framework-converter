@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { processFolder } from './services/conversionLogic.js';
 import unzipper from 'unzipper';
 import fs from 'fs';
+import archiver from 'archiver'; 
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,15 +13,13 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 
+const OUTPUT_DIR = path.join(__dirname, 'output');
+
 if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
     fs.mkdirSync(path.join(__dirname, 'uploads'), { recursive: true });
 }
 
 const upload = multer({ dest: path.join(__dirname, 'uploads/') });
-
-function sanitizeFilename(name) {
-    return name.replace(/[^a-zA-Z0-9._-]/g, '_');
-}
 
 app.post('/api/convert', upload.single('folder'), async (req, res) => {
     if (!req.file) {
@@ -29,7 +28,6 @@ app.post('/api/convert', upload.single('folder'), async (req, res) => {
 
     const zipPath = path.join(__dirname, 'uploads', req.file.filename);
     const extractedPath = path.join(__dirname, 'uploads', req.file.filename + '_extracted');
-    const outputFolder = path.join(__dirname, 'output');
     const framework = req.body.framework;
 
     try {
@@ -37,17 +35,45 @@ app.post('/api/convert', upload.single('folder'), async (req, res) => {
             fs.mkdirSync(extractedPath, { recursive: true });
         }
 
-        const directory = await fs.createReadStream(zipPath)
-            .pipe(unzipper.Extract({ path: extractedPath }))
-            .promise();
+        await new Promise((resolve, reject) => {
+            fs.createReadStream(zipPath)
+                .pipe(unzipper.Extract({ path: extractedPath }))
+                .on('close', resolve)
+                .on('error', reject);
+        });
 
-        processFolder(extractedPath, outputFolder, framework);
+        processFolder(extractedPath, OUTPUT_DIR, framework);
 
         res.json({ message: 'Konvertierung abgeschlossen!', output: '/output' });
     } catch (error) {
         console.error('Fehler bei der Konvertierung:', error);
         res.status(500).json({ error: error.message });
     }
+});
+
+app.get('/api/download', (req, res) => {
+    const zipFilePath = path.join(OUTPUT_DIR, 'converted_project.zip');
+
+    const output = fs.createWriteStream(zipFilePath);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    output.on('close', () => {
+        res.download(zipFilePath, 'converted_project.zip', (err) => {
+            if (err) {
+                console.error('Fehler beim Herunterladen:', err);
+                res.status(500).send('Fehler beim Herunterladen');
+            }
+        });
+    });
+
+    archive.on('error', (err) => {
+        console.error('ZIP-Fehler:', err);
+        res.status(500).send('Fehler beim Erstellen der ZIP-Datei');
+    });
+
+    archive.pipe(output);
+    archive.directory(OUTPUT_DIR, false);
+    archive.finalize();
 });
 
 app.use(express.static(path.join(__dirname, '../dist')));
