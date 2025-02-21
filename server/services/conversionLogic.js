@@ -16,6 +16,7 @@ export function processFolder(inputFolder, outputFolder, framework) {
     generateRouterConfig(outputFolder, htmlFiles);
     generateAppVue(outputFolder);
     generateIndexHtml(outputFolder);
+    generateImgFolder(outputFolder);
     execSync('npm install', { cwd: outputFolder, stdio: 'inherit' });
   }
 }
@@ -249,4 +250,9 @@ function generateIndexHtml(outputFolder) {
   `.trim();
 
   fs.writeFileSync(path.join(outputFolder, 'index.html'), indexHtmlContent, 'utf8');
+}
+
+function generateImgFolder(outputFolder) {
+  const imgDir = path.join(outputFolder, 'src/assets/img');
+  if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir, { recursive: true });
 }
