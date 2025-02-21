@@ -40,7 +40,7 @@ export default {
 
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', 'converted_project.zip'); // Name der heruntergeladenen Datei
+        link.setAttribute('download', 'converted_project.zip'); // name of the file
         document.body.appendChild(link);
         link.click();
 

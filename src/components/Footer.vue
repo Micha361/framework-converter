@@ -1,7 +1,7 @@
 <template>
     <footer>
       <div class="footer-content">
-        <p>&copy;Framework Converter All rights reserved.</p>
+        <p>&copy;Framework Converter</p>
       </div>
     </footer>
   </template>
